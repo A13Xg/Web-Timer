@@ -61,6 +61,7 @@ function parseDuration(raw) {
 }
 
 function formatSeconds(total) {
+  if (typeof total !== 'number' || !isFinite(total)) return '00:00:00';
   const s = Math.max(0, Math.floor(total));
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
@@ -376,9 +377,18 @@ function renderRoute() {
 
   if (state.route === '/pomodoro-timer') {
     app.innerHTML += screenTemplate('<div id="clockOut" class="clock-output"></div><div class="subtext" id="dateOut"></div>');
-    const focus = Number(state.focus_min) * 60;
-    const br = Number(state.break_min) * 60;
-    const cycle = Math.max(1, focus + br);
+    const focusNum = Number(state.focus_min);
+    const breakNum = Number(state.break_min);
+    if (!isFinite(focusNum) || !isFinite(breakNum) || focusNum <= 0 || breakNum <= 0) {
+      const d = document.getElementById('clockOut');
+      if (d) d.textContent = '00:00:00';
+      const sub = document.getElementById('dateOut');
+      if (sub) sub.textContent = 'Invalid focus/break values';
+      return;
+    }
+    const focus = focusNum * 60;
+    const br = breakNum * 60;
+    const cycle = focus + br;
     const base = Date.now();
     tick(() => {
       const elapsed = Math.floor((Date.now() - base) / 1000);
@@ -395,6 +405,15 @@ function renderRoute() {
     el.addEventListener('input', (e) => {
       const key = e.target.dataset.key;
       state[key] = e.target.value;
+
+      // Re-render timer if critical params change
+      const timerParams = ['start_time', 'stop_time', 'focus_min', 'break_min', 'timezone'];
+      if (timerParams.includes(key)) {
+        renderRoute();
+        applySettingsState();
+        return;
+      }
+
       if (key === 'timer_name') {
         const title = document.querySelector('.typo-h');
         if (title) title.textContent = state.timer_name;
