@@ -45,6 +45,8 @@ let wakeLock = null;
 let wakeIntervalId = null;
 let ticking = null;
 let wakeVisibilityBound = false;
+let wakeLockRequestPromise = null;
+let audioCtx = null;
 
 function parseDuration(raw) {
   if (!raw) return 0;
@@ -243,18 +245,18 @@ function isAlarmAllowed() {
 
 function beepPattern() {
   if (!state.alarm || !isAlarmAllowed()) return;
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   let i = 0;
   const play = () => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
     osc.type = 'sine';
     osc.frequency.value = 880;
     gain.gain.value = 0.08;
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(ctx.currentTime + 1);
+    osc.stop(audioCtx.currentTime + 1);
     i += 1;
     if (i < 3) setTimeout(play, 1100);
   };
@@ -273,12 +275,18 @@ async function enableWakeLock(on) {
   async function requestLock() {
     if (!('wakeLock' in navigator)) return;
     if (wakeLock && !wakeLock.released) return;
-    const lock = await navigator.wakeLock.request('screen');
-    wakeLock = lock;
-    lock.addEventListener('release', () => {
-      wakeLock = null;
-      if (state.keep_awake) requestLock().catch(() => {});
-    });
+    if (wakeLockRequestPromise) return wakeLockRequestPromise;
+    wakeLockRequestPromise = navigator.wakeLock.request('screen');
+    try {
+      const lock = await wakeLockRequestPromise;
+      wakeLock = lock;
+      lock.addEventListener('release', () => {
+        wakeLock = null;
+        if (state.keep_awake) requestLock().catch(() => {});
+      });
+    } finally {
+      wakeLockRequestPromise = null;
+    }
   }
 
   requestLock().catch(() => {});
