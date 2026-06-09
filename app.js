@@ -1,6 +1,7 @@
 const app = document.getElementById('app');
 const settingsPanel = document.getElementById('settingsPanel');
 const settingsToggle = document.getElementById('settingsToggle');
+const settingsClose = document.getElementById('settingsClose');
 const alarmToggle = document.getElementById('alarmToggle');
 const keepAwakeToggle = document.getElementById('keepAwakeToggle');
 const modeToggle = document.getElementById('modeToggle');
@@ -9,14 +10,28 @@ const themeSelect = document.getElementById('themeSelect');
 const STORAGE_KEY = 'web_timer_state_v1';
 const COOKIE_KEY = 'web_timer_state';
 
-themeSelect.classList.add('theme-select');
-
 const routes = {
   '/': { name: 'Home' },
-  '/elapsed-timer': { name: 'Elapsed Timer' },
-  '/countdown-timer': { name: 'Countdown Timer' },
-  '/world-clock': { name: 'World Clock' },
-  '/pomodoro-timer': { name: 'Pomodoro Timer' }
+  '/elapsed-timer': {
+    name: 'Elapsed Timer',
+    icon: '⏱️',
+    description: 'Track time elapsed since a start point. Perfect for measuring how long tasks take.'
+  },
+  '/countdown-timer': {
+    name: 'Countdown Timer',
+    icon: '⏳',
+    description: 'Count down to zero from a set duration. Great for time-boxing work sessions.'
+  },
+  '/world-clock': {
+    name: 'World Clock',
+    icon: '🌍',
+    description: 'Display the current time in any timezone. Useful for remote team coordination.'
+  },
+  '/pomodoro-timer': {
+    name: 'Pomodoro Timer',
+    icon: '🍅',
+    description: 'Alternate between focus and break intervals using the Pomodoro technique.'
+  }
 };
 
 const state = {
@@ -33,7 +48,8 @@ const state = {
   keep_awake: false,
   mode: 'light',
   theme: 'default',
-  fullscreen: false
+  fullscreen: false,
+  controls_expanded: true
 };
 
 const serializableKeys = [
@@ -47,6 +63,8 @@ let ticking = null;
 let wakeVisibilityBound = false;
 let wakeLockRequestPromise = null;
 let audioCtx = null;
+
+// ===== Utility Functions =====
 
 function parseDuration(raw) {
   if (!raw) return 0;
@@ -77,6 +95,8 @@ function esc(value) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 }
+
+// ===== State Persistence =====
 
 function parseCookieState() {
   const raw = document.cookie
@@ -120,6 +140,8 @@ function persistState() {
 
   document.cookie = `${COOKIE_KEY}=${encodeURIComponent(JSON.stringify(payload))}; Max-Age=31536000; Path=/; SameSite=Lax`;
 }
+
+// ===== Routing =====
 
 function extractRouteFromPath(pathname) {
   const clean = pathname.replace(/\/index\.html$/, '').replace(/\/$/, '') || '/';
@@ -190,14 +212,23 @@ function readStateFromUrl() {
   state.theme = themeSelect.querySelector(`option[value="${state.theme}"]`) ? state.theme : 'default';
 }
 
+// ===== Rendering =====
+
 function renderNav() {
+  const timerRoutes = Object.entries(routes).filter(([k]) => k !== '/');
   return `
-    <div class="home-list card">
-      <h1>Web Timer</h1>
-      <button data-route="/elapsed-timer">Elapsed Timer</button>
-      <button data-route="/countdown-timer">Countdown Timer</button>
-      <button data-route="/world-clock">World Clock</button>
-      <button data-route="/pomodoro-timer">Pomodoro Timer</button>
+    <div class="home-screen">
+      <h1 class="home-title">Web Timer</h1>
+      <p class="home-subtitle">Choose a timer mode to get started</p>
+      <div class="home-grid">
+        ${timerRoutes.map(([route, info]) => `
+          <div class="home-card" data-route="${route}" role="button" tabindex="0" aria-label="${info.name}">
+            <span class="card-icon">${info.icon}</span>
+            <h3>${info.name}</h3>
+            <p>${info.description}</p>
+          </div>
+        `).join('')}
+      </div>
     </div>`;
 }
 
@@ -210,35 +241,46 @@ function renderControls() {
   let extra = '';
   if (isElapsed) {
     extra = `
-      <label>Start Time<input data-key="start_time" type="datetime-local" value="${esc(state.start_time)}" /></label>
-      <label>Stop Time<input data-key="stop_time" type="datetime-local" value="${esc(state.stop_time)}" /></label>`;
+      <label><span>Start Time</span><input data-key="start_time" type="datetime-local" value="${esc(state.start_time)}" /></label>
+      <label><span>Stop Time</span><input data-key="stop_time" type="datetime-local" value="${esc(state.stop_time)}" /></label>`;
   } else if (isCountdown) {
     extra = `
-      <label>Start Time<input data-key="start_time" type="text" placeholder="10m" value="${esc(state.start_time || '10m')}" /></label>
-      <label>Stop Time<input data-key="stop_time" type="datetime-local" value="${esc(state.stop_time)}" /></label>`;
+      <label><span>Duration</span><input data-key="start_time" type="text" placeholder="e.g. 10m, 1h, 90s" value="${esc(state.start_time || '10m')}" /></label>
+      <label><span>End At</span><input data-key="stop_time" type="datetime-local" value="${esc(state.stop_time)}" /></label>`;
   } else if (isWorld) {
     extra = `
-      <label>Timezone
+      <label><span>Timezone</span>
         <select data-key="timezone">
-          ${['UTC', 'America/New_York', 'Europe/London', 'Asia/Tokyo', 'Australia/Sydney'].map((tz) => `<option ${state.timezone === tz ? 'selected' : ''} value="${tz}">${tz}</option>`).join('')}
+          ${['UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Kolkata', 'Australia/Sydney', 'Pacific/Auckland'].map((tz) => `<option ${state.timezone === tz ? 'selected' : ''} value="${tz}">${tz.replace(/_/g, ' ')}</option>`).join('')}
         </select>
       </label>
-      <label>Start Time<input disabled type="text" value="N/A" /></label>`;
+      <label><span>Format</span><input disabled type="text" value="24h" /></label>`;
   } else if (isPomodoro) {
     extra = `
-      <label>Start Time<input data-key="focus_min" type="number" min="1" value="${esc(state.focus_min)}" /></label>
-      <label>Stop Time<input data-key="break_min" type="number" min="1" value="${esc(state.break_min)}" /></label>`;
+      <label><span>Focus (min)</span><input data-key="focus_min" type="number" min="1" max="120" value="${esc(state.focus_min)}" /></label>
+      <label><span>Break (min)</span><input data-key="break_min" type="number" min="1" max="60" value="${esc(state.break_min)}" /></label>`;
   }
+
+  const expandedClass = state.controls_expanded ? 'expanded' : '';
+  const chevronClass = state.controls_expanded ? 'open' : '';
 
   return `
     <section class="top-controls">
-      <div class="card controls-grid">
-        <label>Timer Name<input data-key="timer_name" type="text" value="${esc(state.timer_name)}" /></label>
-        <label>Color<input data-key="color" type="color" value="${esc(state.color)}" /></label>
-        ${extra}
+      <div class="controls-card">
+        <div class="controls-toggle" id="controlsToggle" role="button" tabindex="0" aria-expanded="${state.controls_expanded}">
+          <h3>Configuration</h3>
+          <span class="chevron ${chevronClass}">▼</span>
+        </div>
+        <div class="controls-body ${expandedClass}">
+          <label><span>Name</span><input data-key="timer_name" type="text" value="${esc(state.timer_name)}" /></label>
+          <label><span>Color</span><input data-key="color" type="color" value="${esc(state.color)}" /></label>
+          ${extra}
+        </div>
       </div>
     </section>`;
 }
+
+// ===== Audio =====
 
 function isAlarmAllowed() {
   return state.route === '/countdown-timer';
@@ -263,6 +305,8 @@ function beepPattern() {
   };
   play();
 }
+
+// ===== Wake Lock =====
 
 async function enableWakeLock(on) {
   if (!on) {
@@ -302,37 +346,55 @@ async function enableWakeLock(on) {
   }, 15000);
 }
 
-function screenTemplate(content) {
-  const cls = state.theme === 'default' ? '' : state.theme;
-  return `<section class="card ${cls}">
-    <h2 class="typo-h">${esc(state.timer_name)}</h2>
-    ${content}
-    <div class="row">
-      <button data-route="/">Home</button>
-      <button id="fullBtn">Fullscreen</button>
-    </div>
-  </section>`;
+// ===== Clock Screen =====
+
+function screenTemplate(content, subtext) {
+  return `
+    <div class="clock-container">
+      <h2 class="clock-title">${esc(state.timer_name)}</h2>
+      ${content}
+      <div class="clock-subtext">${subtext || ''}</div>
+      <div class="clock-actions">
+        <button data-route="/" aria-label="Go home">← Home</button>
+        <button id="fullBtn" aria-label="Toggle fullscreen">⛶ Fullscreen</button>
+      </div>
+    </div>`;
 }
 
 function tick(calc) {
   if (ticking) clearInterval(ticking);
   const out = document.getElementById('clockOut');
+  if (!out) return;
   out.style.color = state.color;
-  const run = () => { out.textContent = calc(); };
+  const run = () => {
+    const result = calc();
+    if (typeof result === 'string') {
+      out.textContent = result;
+    }
+  };
   run();
   ticking = setInterval(run, 250);
 }
 
+// ===== Route Rendering =====
+
 function renderRoute() {
   if (state.route === '/') {
     app.innerHTML = renderNav();
+    document.title = 'Web Timer';
     return;
   }
+
+  const routeInfo = routes[state.route];
+  document.title = `${state.timer_name} - ${routeInfo ? routeInfo.name : 'Timer'}`;
 
   app.innerHTML = renderControls();
 
   if (state.route === '/elapsed-timer') {
-    app.innerHTML += screenTemplate('<div id="clockOut" class="clock-output"></div><div class="subtext">Elapsed since start time</div>');
+    app.innerHTML += screenTemplate(
+      '<div id="clockOut" class="clock-output" aria-live="polite" aria-atomic="true"></div>',
+      'Elapsed since start time'
+    );
     const startMs = state.start_time ? new Date(state.start_time).getTime() : Date.now();
     const stopMs = state.stop_time ? new Date(state.stop_time).getTime() : null;
     tick(() => {
@@ -343,12 +405,23 @@ function renderRoute() {
   }
 
   if (state.route === '/countdown-timer') {
-    app.innerHTML += screenTemplate('<div id="clockOut" class="clock-output"></div><div class="subtext">Countdown to zero</div>');
+    app.innerHTML += screenTemplate(
+      '<div id="clockOut" class="clock-output" aria-live="polite" aria-atomic="true"></div>',
+      'Countdown to zero'
+    );
     const start = parseDuration(state.start_time || '10m');
     const from = state.stop_time ? new Date(state.stop_time).getTime() : Date.now() + start * 1000;
     let alarmed = false;
     tick(() => {
       const left = Math.max(0, Math.floor((from - Date.now()) / 1000));
+      const out = document.getElementById('clockOut');
+      if (out) {
+        if (left <= 10 && left > 0) {
+          out.classList.add('ending');
+        } else {
+          out.classList.remove('ending');
+        }
+      }
       if (left === 0 && !alarmed) {
         alarmed = true;
         beepPattern();
@@ -358,7 +431,10 @@ function renderRoute() {
   }
 
   if (state.route === '/world-clock') {
-    app.innerHTML += screenTemplate('<div id="clockOut" class="clock-output"></div><div class="subtext" id="dateOut"></div>');
+    app.innerHTML += screenTemplate(
+      '<div id="clockOut" class="clock-output" aria-live="polite" aria-atomic="true"></div><div class="clock-subtext" id="dateOut"></div>',
+      ''
+    );
     tick(() => {
       const now = new Date();
       const time = new Intl.DateTimeFormat('en-GB', {
@@ -367,22 +443,25 @@ function renderRoute() {
       }).format(now);
       const date = new Intl.DateTimeFormat('en-GB', {
         timeZone: state.timezone,
-        weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
+        weekday: 'long', day: '2-digit', month: 'short', year: 'numeric'
       }).format(now);
       const d = document.getElementById('dateOut');
-      if (d) d.textContent = `${state.timezone} • ${date}`;
+      if (d) d.textContent = `${state.timezone.replace(/_/g, ' ')} · ${date}`;
       return time;
     });
   }
 
   if (state.route === '/pomodoro-timer') {
-    app.innerHTML += screenTemplate('<div id="clockOut" class="clock-output"></div><div class="subtext" id="dateOut"></div>');
+    app.innerHTML += screenTemplate(
+      '<div id="clockOut" class="clock-output" aria-live="polite" aria-atomic="true"></div><div class="clock-subtext" id="phaseOut"></div>',
+      ''
+    );
     const focusNum = Number(state.focus_min);
     const breakNum = Number(state.break_min);
     if (!isFinite(focusNum) || !isFinite(breakNum) || focusNum <= 0 || breakNum <= 0) {
       const d = document.getElementById('clockOut');
       if (d) d.textContent = '00:00:00';
-      const sub = document.getElementById('dateOut');
+      const sub = document.getElementById('phaseOut');
       if (sub) sub.textContent = 'Invalid focus/break values';
       return;
     }
@@ -395,18 +474,34 @@ function renderRoute() {
       const pos = elapsed % cycle;
       const inFocus = pos < focus;
       const left = inFocus ? focus - pos : cycle - pos;
-      const d = document.getElementById('dateOut');
-      if (d) d.textContent = inFocus ? 'Focus phase' : 'Break phase';
+      const d = document.getElementById('phaseOut');
+      if (d) {
+        d.textContent = inFocus ? '🎯 Focus Phase' : '☕ Break Phase';
+        d.style.color = inFocus ? 'var(--accent)' : 'var(--fg)';
+      }
       return formatSeconds(left);
     });
   }
 
+  // Bind controls toggle
+  const controlsToggle = document.getElementById('controlsToggle');
+  if (controlsToggle) {
+    controlsToggle.addEventListener('click', () => {
+      state.controls_expanded = !state.controls_expanded;
+      const body = controlsToggle.nextElementSibling;
+      const chevron = controlsToggle.querySelector('.chevron');
+      body.classList.toggle('expanded', state.controls_expanded);
+      chevron.classList.toggle('open', state.controls_expanded);
+      controlsToggle.setAttribute('aria-expanded', state.controls_expanded);
+    });
+  }
+
+  // Bind data-key inputs
   document.querySelectorAll('[data-key]').forEach((el) => {
     el.addEventListener('input', (e) => {
       const key = e.target.dataset.key;
       state[key] = e.target.value;
 
-      // Re-render timer if critical params change
       const timerParams = ['start_time', 'stop_time', 'focus_min', 'break_min', 'timezone'];
       if (timerParams.includes(key)) {
         renderRoute();
@@ -415,8 +510,9 @@ function renderRoute() {
       }
 
       if (key === 'timer_name') {
-        const title = document.querySelector('.typo-h');
+        const title = document.querySelector('.clock-title');
         if (title) title.textContent = state.timer_name;
+        document.title = `${state.timer_name} - ${routes[state.route]?.name || 'Timer'}`;
       }
       if (key === 'color') {
         const out = document.getElementById('clockOut');
@@ -426,6 +522,7 @@ function renderRoute() {
     });
   });
 
+  // Fullscreen button
   const fullBtn = document.getElementById('fullBtn');
   if (fullBtn) {
     fullBtn.addEventListener('click', async () => {
@@ -438,8 +535,36 @@ function renderRoute() {
   }
 }
 
+// ===== Event Bindings =====
+
 function bindSharedEvents() {
-  settingsToggle.addEventListener('click', () => settingsPanel.classList.toggle('hidden'));
+  settingsToggle.addEventListener('click', () => {
+    settingsPanel.classList.toggle('hidden');
+  });
+
+  settingsClose.addEventListener('click', () => {
+    settingsPanel.classList.add('hidden');
+  });
+
+  // Close settings on clicking outside
+  document.addEventListener('click', (e) => {
+    if (!settingsPanel.classList.contains('hidden') &&
+        !settingsPanel.contains(e.target) &&
+        !settingsToggle.contains(e.target)) {
+      settingsPanel.classList.add('hidden');
+    }
+  });
+
+  // Keyboard support for home cards
+  app.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const card = e.target.closest('[data-route][role="button"]');
+      if (card) {
+        e.preventDefault();
+        card.click();
+      }
+    }
+  });
 
   app.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-route]');
@@ -470,15 +595,48 @@ function bindSharedEvents() {
     state.theme = themeSelect.value;
     applyTheme();
     syncUrl();
+    // Re-render to apply theme-specific styles
+    if (state.route !== '/') {
+      renderRoute();
+      applySettingsState();
+    }
+  });
+
+  // Escape to close settings
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !settingsPanel.classList.contains('hidden')) {
+      settingsPanel.classList.add('hidden');
+    }
+  });
+
+  // Handle browser back/forward
+  window.addEventListener('popstate', () => {
+    readStateFromUrl();
+    start();
   });
 
   window.addEventListener('beforeunload', persistState);
 }
 
+function debounce(fn, ms) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
+
+// ===== Theme Application =====
+
 function applyTheme() {
   document.body.className = `theme-${state.theme} ${state.mode}`;
-  modeToggle.disabled = state.theme !== 'default';
-  modeToggle.parentElement.classList.toggle('disabled', modeToggle.disabled);
+  
+  // Only allow dark/light toggle on default theme
+  const isDefault = state.theme === 'default';
+  modeToggle.disabled = !isDefault;
+  const modeRow = modeToggle.parentElement && modeToggle.parentElement.closest('.setting-row');
+  if (modeRow) modeRow.classList.toggle('disabled', !isDefault);
+  
   themeSelect.value = state.theme;
   modeToggle.checked = state.mode === 'dark';
 }
@@ -487,10 +645,13 @@ function applySettingsState() {
   const alarmAllowed = isAlarmAllowed();
   alarmToggle.checked = state.alarm;
   alarmToggle.disabled = !alarmAllowed;
-  alarmToggle.parentElement.classList.toggle('disabled', !alarmAllowed);
+  const alarmRow = alarmToggle.parentElement && alarmToggle.parentElement.closest('.setting-row');
+  if (alarmRow) alarmRow.classList.toggle('disabled', !alarmAllowed);
   keepAwakeToggle.checked = state.keep_awake;
   applyTheme();
 }
+
+// ===== Start =====
 
 function start() {
   if (ticking) clearInterval(ticking);

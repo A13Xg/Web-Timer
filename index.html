@@ -4,47 +4,71 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Web Timer</title>
+  <meta name="description" content="A beautiful, responsive web timer with multiple clock modes and themes." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=Space+Grotesk:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,400&family=Space+Grotesk:wght@300;400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body class="theme-default light">
   <main id="app"></main>
 
-  <button id="settingsToggle" class="settings-fab" aria-label="Open settings">⚙️</button>
+  <button id="settingsToggle" class="settings-fab" aria-label="Toggle settings panel" title="Settings">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  </button>
 
   <section id="settingsPanel" class="settings-panel hidden" aria-label="Settings panel">
-    <h2>Settings</h2>
-    <label>
-      <span>Alarm</span>
-      <input id="alarmToggle" type="checkbox" />
-    </label>
-    <label>
-      <span>Keep Awake</span>
-      <input id="keepAwakeToggle" type="checkbox" />
-    </label>
-    <label>
-      <span>Theme Preset</span>
-      <select id="themeSelect">
-        <option value="default">default</option>
-        <option value="brut">brut</option>
-        <option value="cyber">cyber</option>
-        <option value="hud">hud</option>
-        <option value="bento">bento</option>
-        <option value="noir">noir</option>
-        <option value="chalk">chalk</option>
-        <option value="tokyo">tokyo</option>
-        <option value="cassette">cassette</option>
-        <option value="betamax">betamax</option>
-        <option value="raygun">raygun</option>
-        <option value="moonbase">moonbase</option>
-      </select>
-    </label>
-    <label>
-      <span>Dark / Light</span>
-      <input id="modeToggle" type="checkbox" />
-    </label>
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button id="settingsClose" class="settings-close" aria-label="Close settings">&times;</button>
+    </div>
+    <div class="settings-body">
+      <label class="setting-row">
+        <span class="setting-label">Alarm</span>
+        <span class="setting-desc">Sound alert when timer ends</span>
+        <label class="toggle-switch">
+          <input id="alarmToggle" type="checkbox" />
+          <span class="toggle-slider"></span>
+        </label>
+      </label>
+      <label class="setting-row">
+        <span class="setting-label">Keep Awake</span>
+        <span class="setting-desc">Prevent screen from sleeping</span>
+        <label class="toggle-switch">
+          <input id="keepAwakeToggle" type="checkbox" />
+          <span class="toggle-slider"></span>
+        </label>
+      </label>
+      <div class="setting-row">
+        <span class="setting-label">Theme</span>
+        <span class="setting-desc">Choose a visual style</span>
+        <select id="themeSelect" class="theme-select">
+          <option value="default">Default</option>
+          <option value="brut">Brutalist</option>
+          <option value="cyber">Cyberpunk</option>
+          <option value="hud">HUD</option>
+          <option value="bento">Bento</option>
+          <option value="noir">Noir</option>
+          <option value="chalk">Chalkboard</option>
+          <option value="tokyo">Tokyo Night</option>
+          <option value="cassette">Cassette</option>
+          <option value="betamax">Betamax</option>
+          <option value="raygun">Raygun</option>
+          <option value="moonbase">Moonbase</option>
+        </select>
+      </div>
+      <label class="setting-row">
+        <span class="setting-label">Dark / Light</span>
+        <span class="setting-desc">Toggle dark mode</span>
+        <label class="toggle-switch">
+          <input id="modeToggle" type="checkbox" />
+          <span class="toggle-slider"></span>
+        </label>
+      </label>
+    </div>
   </section>
 
   <script src="./app.js"></script>
