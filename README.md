@@ -17,7 +17,7 @@ Notes:
 
 ## Deploy to GitHub Pages
 
-This repository includes a workflow at `/tmp/workspace/A13Xg/Web-Timer/.github/workflows/deploy-pages.yml` that deploys the site on every push to `main`.
+This repository includes a workflow at `.github/workflows/deploy-pages.yml` that deploys the site on every push to `main`.
 
 To enable deployment:
 1. In GitHub, open **Settings → Pages**.
