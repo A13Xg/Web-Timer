@@ -21,7 +21,7 @@
 
 html, body {
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
 }
 
 body {
@@ -278,14 +278,17 @@ main {
   overflow: hidden;
   max-height: 0;
   opacity: 0;
-  transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+  visibility: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease, visibility 0s 0.4s;
   margin-top: 0;
 }
 
 .controls-body.expanded {
   max-height: 400px;
   opacity: 1;
+  visibility: visible;
   margin-top: 0.75rem;
+  transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease, visibility 0s 0s;
 }
 
 .controls-body label {

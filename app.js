@@ -558,7 +558,7 @@ function bindSharedEvents() {
   // Keyboard support for home cards
   app.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
-      const card = e.target.closest('[data-route]');
+      const card = e.target.closest('[data-route][role="button"]');
       if (card) {
         e.preventDefault();
         card.click();
@@ -616,15 +616,6 @@ function bindSharedEvents() {
   });
 
   window.addEventListener('beforeunload', persistState);
-
-  // Handle window resize - update dynamic font sizing
-  window.addEventListener('resize', debounce(() => {
-    const out = document.getElementById('clockOut');
-    if (out) {
-      // Force reflow for dynamic sizing
-      out.style.fontSize = '';
-    }
-  }, 150));
 }
 
 function debounce(fn, ms) {
@@ -643,7 +634,8 @@ function applyTheme() {
   // Only allow dark/light toggle on default theme
   const isDefault = state.theme === 'default';
   modeToggle.disabled = !isDefault;
-  modeToggle.parentElement.closest('.setting-row').classList.toggle('disabled', !isDefault);
+  const modeRow = modeToggle.parentElement && modeToggle.parentElement.closest('.setting-row');
+  if (modeRow) modeRow.classList.toggle('disabled', !isDefault);
   
   themeSelect.value = state.theme;
   modeToggle.checked = state.mode === 'dark';
@@ -653,7 +645,8 @@ function applySettingsState() {
   const alarmAllowed = isAlarmAllowed();
   alarmToggle.checked = state.alarm;
   alarmToggle.disabled = !alarmAllowed;
-  alarmToggle.parentElement.closest('.setting-row').classList.toggle('disabled', !alarmAllowed);
+  const alarmRow = alarmToggle.parentElement && alarmToggle.parentElement.closest('.setting-row');
+  if (alarmRow) alarmRow.classList.toggle('disabled', !alarmAllowed);
   keepAwakeToggle.checked = state.keep_awake;
   applyTheme();
 }
