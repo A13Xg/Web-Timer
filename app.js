@@ -44,6 +44,7 @@ const serializableKeys = [
 let wakeLock = null;
 let wakeIntervalId = null;
 let ticking = null;
+let wakeVisibilityBound = false;
 
 function parseDuration(raw) {
   if (!raw) return 0;
@@ -236,8 +237,12 @@ function renderControls() {
     </section>`;
 }
 
+function isAlarmAllowed() {
+  return state.route === '/countdown-timer';
+}
+
 function beepPattern() {
-  if (!state.alarm || state.route !== '/countdown-timer') return;
+  if (!state.alarm || !isAlarmAllowed()) return;
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   let i = 0;
   const play = () => {
@@ -274,9 +279,12 @@ async function enableWakeLock(on) {
   }
 
   requestLock().catch(() => {});
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && state.keep_awake) requestLock().catch(() => {});
-  });
+  if (!wakeVisibilityBound) {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && state.keep_awake) requestLock().catch(() => {});
+    });
+    wakeVisibilityBound = true;
+  }
   wakeIntervalId = setInterval(() => {
     if (state.keep_awake && !wakeLock) requestLock().catch(() => {});
   }, 15000);
@@ -446,7 +454,7 @@ function applyTheme() {
 }
 
 function applySettingsState() {
-  const alarmAllowed = state.route === '/countdown-timer';
+  const alarmAllowed = isAlarmAllowed();
   alarmToggle.checked = state.alarm;
   alarmToggle.disabled = !alarmAllowed;
   alarmToggle.parentElement.classList.toggle('disabled', !alarmAllowed);
