@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redirecting...</title>
+  <script>
+    (function () {
+      var path = window.location.pathname.replace(/\/+$/, '');
+      var parts = path.split('/').filter(Boolean);
+      var route = '/';
+      var basePath = '';
+      if (parts.length > 0) {
+        var lastPart = parts[parts.length - 1];
+        // Handle non-standard format: /countdown-timer&start_time=10m
+        var ampIndex = lastPart.indexOf('&');
+        if (ampIndex !== -1) {
+          route = '/' + lastPart.substring(0, ampIndex);
+          var inlineParams = lastPart.substring(ampIndex + 1);
+          var params = new URLSearchParams(window.location.search);
+          new URLSearchParams(inlineParams).forEach(function (v, k) {
+            if (!params.has(k)) params.set(k, v);
+          });
+          basePath = parts.length > 1 ? '/' + parts.slice(0, -1).join('/') : '';
+          params.set('route', route);
+          window.location.replace(basePath + '/?' + params.toString());
+          return;
+        }
+        route = '/' + lastPart;
+        basePath = parts.length > 1 ? '/' + parts.slice(0, -1).join('/') : '';
+      }
+      var params = new URLSearchParams(window.location.search);
+      params.set('route', route);
+      window.location.replace(basePath + '/?' + params.toString());
+    })();
+  </script>
+</head>
+<body></body>
+</html>
