@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redirecting...</title>
+  <script>
+    (function () {
+      var path = window.location.pathname.replace(/\/+$/, '');
+      var parts = path.split('/').filter(Boolean);
+      var route = '/';
+      var basePath = '';
+      if (parts.length > 0) {
+        route = '/' + parts[parts.length - 1];
+        basePath = parts.length > 1 ? '/' + parts.slice(0, -1).join('/') : '';
+      }
+      var params = new URLSearchParams(window.location.search);
+      params.set('route', route);
+      window.location.replace(basePath + '/?' + params.toString());
+    })();
+  </script>
+</head>
+<body></body>
+</html>

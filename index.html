@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Timer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=Space+Grotesk:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="theme-default light">
+  <main id="app"></main>
+
+  <button id="settingsToggle" class="settings-fab" aria-label="Open settings">⚙️</button>
+
+  <section id="settingsPanel" class="settings-panel hidden" aria-label="Settings panel">
+    <h2>Settings</h2>
+    <label>
+      <span>Alarm</span>
+      <input id="alarmToggle" type="checkbox" />
+    </label>
+    <label>
+      <span>Keep Awake</span>
+      <input id="keepAwakeToggle" type="checkbox" />
+    </label>
+    <label>
+      <span>Theme Preset</span>
+      <select id="themeSelect">
+        <option value="default">default</option>
+        <option value="brut">brut</option>
+        <option value="cyber">cyber</option>
+        <option value="hud">hud</option>
+        <option value="bento">bento</option>
+        <option value="noir">noir</option>
+        <option value="chalk">chalk</option>
+        <option value="tokyo">tokyo</option>
+        <option value="cassette">cassette</option>
+        <option value="betamax">betamax</option>
+        <option value="raygun">raygun</option>
+        <option value="moonbase">moonbase</option>
+      </select>
+    </label>
+    <label>
+      <span>Dark / Light</span>
+      <input id="modeToggle" type="checkbox" />
+    </label>
+  </section>
+
+  <script src="./app.js"></script>
+</body>
+</html>
