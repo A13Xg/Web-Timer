@@ -272,8 +272,11 @@ async function enableWakeLock(on) {
 
   async function requestLock() {
     if (!('wakeLock' in navigator)) return;
-    wakeLock = await navigator.wakeLock.request('screen');
-    wakeLock.addEventListener('release', () => {
+    if (wakeLock && !wakeLock.released) return;
+    const lock = await navigator.wakeLock.request('screen');
+    wakeLock = lock;
+    lock.addEventListener('release', () => {
+      wakeLock = null;
       if (state.keep_awake) requestLock().catch(() => {});
     });
   }
@@ -317,7 +320,7 @@ function renderRoute() {
     return;
   }
 
-  app.insertAdjacentHTML('beforeend', renderControls());
+  app.innerHTML = renderControls();
 
   if (state.route === '/elapsed-timer') {
     app.innerHTML += screenTemplate('<div id="clockOut" class="clock-output"></div><div class="subtext">Elapsed since start time</div>');
